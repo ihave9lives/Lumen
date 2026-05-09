@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+/* === Lumen Design System === */
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Glass surfaces */
+  --color-glass-light: oklch(100% 0 0 / 0.06);
+  --color-glass-medium: oklch(100% 0 0 / 0.1);
+  --color-glass-heavy: oklch(100% 0 0 / 0.16);
+  --color-glass-border: oklch(100% 0 0 / 0.12);
+  --color-glass-border-hover: oklch(100% 0 0 / 0.22);
+
+  /* Accent palette */
+  --color-accent: oklch(0.65 0.25 275);
+  --color-accent-hover: oklch(0.7 0.27 275);
+  --color-accent-glow: oklch(0.65 0.25 275 / 0.4);
+
+  /* Surface colors — all semi-transparent for system bleed-through */
+  --color-surface-base: oklch(0.13 0.02 280 / 0.65);
+  --color-surface-elevated: oklch(0.16 0.02 280 / 0.5);
+  --color-surface-card: oklch(0.15 0.015 280 / 0.4);
+
+  /* Text hierarchy */
+  --color-text-primary: oklch(0.97 0 0);
+  --color-text-secondary: oklch(0.75 0 0);
+  --color-text-muted: oklch(0.5 0.01 275);
+
+  /* Status colors */
+  --color-status-playing: oklch(0.75 0.18 155);
+  --color-status-backlog: oklch(0.75 0.15 55);
+  --color-status-completed: oklch(0.65 0.25 275);
+}
+
+/* === Global Base Styles === */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: transparent;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(100% 0 0 / 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(100% 0 0 / 0.22);
+}
+
+/* Utility: glass panel */
+@utility glass-panel {
+  background: oklch(100% 0 0 / 0.04);
+  backdrop-filter: blur(40px) saturate(1.5);
+  -webkit-backdrop-filter: blur(40px) saturate(1.5);
+  border: 1px solid oklch(100% 0 0 / 0.1);
+}
+
+@utility glass-panel-heavy {
+  background: oklch(100% 0 0 / 0.08);
+  backdrop-filter: blur(60px) saturate(1.8);
+  -webkit-backdrop-filter: blur(60px) saturate(1.8);
+  border: 1px solid oklch(100% 0 0 / 0.1);
+}
+
+/* Utility: text glow */
+@utility text-glow {
+  text-shadow: 0 0 20px var(--color-accent-glow), 0 0 40px oklch(0.65 0.25 275 / 0.2);
+}
+
+/* Drag region for custom titlebar */
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+}
+
+button,
+a,
+input,
+select {
+  -webkit-app-region: no-drag;
+}
+
+/* Titlebar controls must NEVER be treated as drag targets */
+#titlebar button {
+  -webkit-app-region: no-drag !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 100;
+}
+
+/* Select dropdown styling */
+select option {
+  background: oklch(0.15 0.02 280);
+  color: oklch(0.9 0 0);
+}
+
+/* Smooth transitions globally */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Image rendering for icons — keep sharp pixels */
+img[src^="data:"] {
+  image-rendering: auto;
+  image-rendering: -webkit-optimize-contrast;
+}
