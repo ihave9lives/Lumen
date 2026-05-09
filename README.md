@@ -29,3 +29,45 @@ Before you begin, ensure you have the following installed on your machine:
    ```bash
    git clone [https://github.com/ihave9lives/lumen.git](https://github.com/ihave9lives/lumen.git)
    cd lumen
+Install frontend dependencies:
+    Bash
+
+    npm install
+    # or yarn install / pnpm install
+
+💻 Development
+
+To run Lumen in development mode (which enables hot-reloading for the frontend):
+Bash
+
+npm run tauri dev
+# or yarn tauri dev / pnpm tauri dev
+
+📦 Building for Production
+
+When you are ready to compile the final executable for your operating system:
+Bash
+
+npm run tauri build
+# or yarn tauri build / pnpm tauri build
+
+The compiled application will be located in src-tauri/target/release/bundle/.
+🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
+📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+
+***
+
+### How to add this to your GitHub:
+1. Open Git Bash in your project folder (`/d/SashankarPersonal/pro`).
+2. Type `touch README.md` to create the file.
+3. Open `README.md` in your code editor (like VS Code) and paste the code block above into it. Replace the image link with your actual UI screenshot later if you prefer.
+4. Run these commands to push it:
+   ```bash
+   git add README.md
+   git commit -m "Add project README"
+   git push -u origin main
