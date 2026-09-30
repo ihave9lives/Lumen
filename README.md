@@ -15,8 +15,7 @@ Lumen is a fast, lightweight, and secure desktop application built with [Tauri](
 * **Lightning Fast:** Powered by Rust for minimal memory footprint and maximum performance.
 * **Cross-Platform:** Native builds for Windows, macOS, and Linux.
 * **Secure by Design:** Leverages Tauri's security features to keep your system safe.
-* *(Add another feature specific to your app here)*
-* *(Add another feature specific to your app here)*
+
 
 ## 🚀 Prerequisites
 Before you begin, ensure you have the following installed on your machine:
