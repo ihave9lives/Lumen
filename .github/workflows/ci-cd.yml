@@ -35,7 +35,7 @@ jobs:
           - os: windows-latest
             rust_target: x86_64-pc-windows-msvc
             artifact_name: Lumen-win64
-            bundles: msi,nsis,exe
+            bundles: msi,nsis
           - os: ubuntu-latest
             rust_target: x86_64-unknown-linux-gnu
             artifact_name: Lumen-linux
@@ -104,7 +104,7 @@ jobs:
             See commit history for details.
             
             ### Downloads
-            - **Windows**: Lumen-win64.msi / Lumen-win64.nsis.exe / Lumen-win64.exe
+            - **Windows**: Lumen-win64.msi / Lumen-win64.nsis.exe
             - **Linux**: Lumen-linux.deb / Lumen-linux.AppImage
             - **macOS (Intel)**: Lumen-macos.dmg
             - **macOS (Apple Silicon)**: Lumen-macos-arm64.dmg
