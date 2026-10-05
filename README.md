@@ -62,12 +62,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ***
 
-### How to add this to your GitHub:
-1. Open Git Bash in your project folder (`/d/SashankarPersonal/pro`).
-2. Type `touch README.md` to create the file.
-3. Open `README.md` in your code editor (like VS Code) and paste the code block above into it. Replace the image link with your actual UI screenshot later if you prefer.
-4. Run these commands to push it:
-   ```bash
-   git add README.md
-   git commit -m "Add project README"
-   git push -u origin main
+
