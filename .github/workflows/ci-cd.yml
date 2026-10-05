@@ -112,6 +112,8 @@ jobs:
             ### Installation
             Run the installer for your platform. The app will auto-update on future releases.
           args: --target ${{ matrix.rust_target }} --bundles ${{ matrix.bundles }}
+          releaseDraft: true
+          prerelease: false
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
