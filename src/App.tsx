@@ -1,28 +1,50 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Play, Trash2, Gamepad2 } from "lucide-react";
+import { X, Play, Trash2, Gamepad2, EyeOff } from "lucide-react";
 import { Routes, Route } from "react-router-dom";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import TitleBar from "./components/TitleBar";
 import Sidebar from "./components/Sidebar";
 import Library from "./pages/Library";
 import Settings from "./pages/Settings";
 import Stats from "./pages/Stats";
 import Backlog from "./pages/Backlog";
+import Updates from "./pages/Updates";
+import OptiScaler from "./pages/OptiScaler";
 import PerformanceOverlay from "./components/PerformanceOverlay";
 import type { Game } from "./data/mockGames";
-import { invoke } from "@tauri-apps/api/core";
 import "./index.css";
+
+interface AppSettings {
+  appearance: {
+    theme: string;
+  };
+  behavior: {
+    launch_minimized: boolean;
+    auto_scan_on_startup: boolean;
+    enable_performance_overlay: boolean;
+  };
+  library: {
+    steam_paths: string[];
+    epic_paths: string[];
+    local_paths: string[];
+  };
+  version: number;
+}
 
 const platformMap: Record<string, { label: string; color: string }> = {
   steam: { label: "Steam", color: "oklch(0.7 0.15 215)" },
   epic: { label: "Epic Games", color: "oklch(0.75 0.12 85)" },
   local: { label: "Local", color: "oklch(0.7 0.1 155)" },
+  custom: { label: "Custom", color: "oklch(0.7 0.1 155)" },
 };
 
 function App() {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
   const [isOverlayVisible, setIsOverlayVisible] = useState(false);
+  const [hiddenGames, setHiddenGames] = useState<Set<string>>(new Set());
 
   const bgStyle = useMemo(
     () => ({
@@ -34,6 +56,43 @@ function App() {
     }),
     []
   );
+
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await invoke<AppSettings>("get_settings");
+        if (settings?.behavior?.enable_performance_overlay !== undefined) {
+          setIsOverlayVisible(false); // Will be toggled by user action
+        }
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  // Load hidden games
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+
+    const loadHidden = async () => {
+      try {
+        const hidden = await invoke<string[]>("get_hidden_games");
+        setHiddenGames(new Set(hidden));
+      } catch (err) {
+        console.error("Failed to load hidden games:", err);
+      }
+    };
+    loadHidden();
+
+    // Listen for hidden games updates
+    listen("hidden-games-updated", () => {
+      loadHidden();
+    }).then(fn => { unlisten = fn; });
+    
+    return () => { if (unlisten) unlisten(); };
+  }, []);
 
   const handleLaunch = async (game: Game) => {
     setIsLaunching(true);
@@ -67,6 +126,17 @@ function App() {
     setSelectedGame(null);
   };
 
+  const handleHide = async (game: Game) => {
+    try {
+      await invoke('hide_game', { gameId: game.id });
+      setHiddenGames(prev => new Set([...prev, game.id]));
+      window.dispatchEvent(new CustomEvent('refresh-games'));
+    } catch (err) {
+      console.error("Failed to hide game:", err);
+    }
+    setSelectedGame(null);
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden rounded-lg" style={bgStyle}>
       <TitleBar />
@@ -78,12 +148,14 @@ function App() {
 
         <main className="flex-1 flex flex-col overflow-hidden relative">
           <Routes>
-            <Route path="/" element={<Library onGameClick={setSelectedGame} />} />
-            <Route path="/library" element={<Library onGameClick={setSelectedGame} />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/stats" element={<Stats />} />
-            <Route path="/backlog" element={<Backlog />} />
-          </Routes>
+                      <Route path="/" element={<Library onGameClick={setSelectedGame} onHideGame={handleHide} hiddenGames={hiddenGames} />} />
+                      <Route path="/library" element={<Library onGameClick={setSelectedGame} onHideGame={handleHide} hiddenGames={hiddenGames} />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/updates" element={<Updates />} />
+                      <Route path="/optiscaler" element={<OptiScaler />} />
+                      <Route path="/stats" element={<Stats />} />
+                      <Route path="/backlog" element={<Backlog />} />
+                    </Routes>
         </main>
       </div>
 
@@ -112,7 +184,7 @@ function App() {
                 border: "1px solid oklch(100% 0 0 / 0.1)",
                 boxShadow: "0 32px 80px oklch(0 0 0 / 0.5), 0 0 0 1px oklch(100% 0 0 / 0.05)",
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
               {/* Cover art banner with gradient overlay */}
               <div className="relative h-36 overflow-hidden">
@@ -225,6 +297,26 @@ function App() {
                     whileTap={{ scale: 0.92 }}
                   >
                     <Trash2 size={16} />
+                  </motion.button>
+
+                  <motion.button
+                    className="h-11 w-11 rounded-xl flex items-center justify-center cursor-pointer"
+                    style={{
+                      background: "oklch(100% 0 0 / 0.06)",
+                      border: "1px solid oklch(100% 0 0 / 0.08)",
+                      color: "var(--color-text-secondary)",
+                      outline: "none",
+                    }}
+                    onClick={() => handleHide(selectedGame)}
+                    title="Hide from Library"
+                    whileHover={{
+                      backgroundColor: "oklch(100% 0 0 / 0.1)",
+                      borderColor: "oklch(100% 0 0 / 0.15)",
+                      scale: 1.05,
+                    }}
+                    whileTap={{ scale: 0.92 }}
+                  >
+                    <EyeOff size={16} />
                   </motion.button>
                 </div>
               </div>

@@ -10,7 +10,7 @@ export default function Stats() {
   const fetchGames = useCallback(async () => {
     try {
       if (window.__TAURI_INTERNALS__ || ('__TAURI_IPC__' in window)) {
-        const fetched = await invoke<Game[]>('scan_local_games');
+        const fetched = await invoke<Game[]>('scan_all_games');
         setGames(fetched || []);
       }
     } catch (err) {
@@ -26,6 +26,7 @@ export default function Stats() {
   const steamGames = games.filter(g => g.platform === "steam").length;
   const epicGames = games.filter(g => g.platform === "epic").length;
   const localGames = games.filter(g => g.platform === "local").length;
+  const customGames = games.filter(g => g.platform === "custom").length;
   const totalHours = games.reduce((sum, g) => sum + (g.hoursPlayed || 0), 0);
 
   const statCards = [
@@ -45,7 +46,7 @@ export default function Stats() {
     },
     {
       label: "Platforms",
-      value: [steamGames > 0, epicGames > 0, localGames > 0].filter(Boolean).length,
+      value: [steamGames > 0, epicGames > 0, localGames > 0, customGames > 0].filter(Boolean).length,
       icon: Layers,
       color: "oklch(0.75 0.15 55)",
       glow: "oklch(0.75 0.15 55 / 0.2)",
@@ -56,6 +57,7 @@ export default function Stats() {
     { label: "Steam", count: steamGames, pct: totalGames > 0 ? (steamGames / totalGames) * 100 : 0, color: "oklch(0.7 0.15 215)" },
     { label: "Epic", count: epicGames, pct: totalGames > 0 ? (epicGames / totalGames) * 100 : 0, color: "oklch(0.75 0.12 85)" },
     { label: "Local", count: localGames, pct: totalGames > 0 ? (localGames / totalGames) * 100 : 0, color: "oklch(0.7 0.1 155)" },
+    { label: "Custom", count: customGames, pct: totalGames > 0 ? (customGames / totalGames) * 100 : 0, color: "oklch(0.7 0.1 155)" },
   ];
 
   const containerVariants = {

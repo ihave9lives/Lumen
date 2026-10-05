@@ -1,0 +1,206 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: false
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Build and test on all platforms
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+            artifact_name: Lumen-win64
+            installer: msi
+          - os: ubuntu-latest
+            rust_target: x86_64-unknown-linux-gnu
+            artifact_name: Lumen-linux
+            installer: deb
+          - os: macos-latest
+            rust_target: x86_64-apple-darwin
+            artifact_name: Lumen-macos
+            installer: dmg
+          - os: macos-latest
+            rust_target: aarch64-apple-darwin
+            artifact_name: Lumen-macos-arm64
+            installer: dmg
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}-cargo
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install pkg-config
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build Tauri application
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'Lumen v__VERSION__'
+          releaseBody: |
+            ## Lumen v__VERSION__
+            
+            ### Changes
+            See commit history for details.
+            
+            ### Downloads
+            - **Windows**: Lumen-win64.msi / Lumen-win64.exe
+            - **Linux**: Lumen-linux.deb / Lumen-linux.AppImage
+            - **macOS (Intel)**: Lumen-macos.dmg
+            - **macOS (Apple Silicon)**: Lumen-macos-arm64.dmg
+            
+            ### Installation
+            Run the installer for your platform. The app will auto-update on future releases.
+          args: --target ${{ matrix.rust_target }} --bundle-type ${{ matrix.installer }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            src-tauri/target/${{ matrix.rust_target }}/release/bundle/**/*
+          retention-days: 7
+
+  # Create release on tag push
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
+          draft: false
+          prerelease: contains(github.ref, '-rc') || contains(github.ref, '-beta') || contains(github.ref, '-alpha')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Auto-create patch release on main branch pushes
+  auto-release:
+    name: Auto Patch Release
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get current version
+        id: version
+        run: |
+          CURRENT_VERSION=$(grep '^version = ' src-tauri/Cargo.toml | head -1 | cut -d'"' -f2)
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Calculate next patch version
+        id: next_version
+        run: |
+          VERSION=${{ steps.version.outputs.current_version }}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+          NEXT_PATCH=$((PATCH + 1))
+          NEXT_VERSION="$MAJOR.$MINOR.$NEXT_PATCH"
+          echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update version files
+        run: |
+          NEXT_VERSION=${{ steps.next_version.outputs.next_version }}
+          
+          # Update Cargo.toml
+          sed -i "s/^version = \".*\"/version = \"$NEXT_VERSION\"/" src-tauri/Cargo.toml
+          
+          # Update tauri.conf.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"$NEXT_VERSION\"/" src-tauri/tauri.conf.json
+          
+          # Update package.json
+          npm version $NEXT_VERSION --no-git-tag-version
+
+      - name: Commit version bump
+        run: |
+          git add src-tauri/Cargo.toml src-tauri/tauri.conf.json package.json package-lock.json
+          git commit -m "chore: release v${{ steps.next_version.outputs.next_version }}"
+
+      - name: Create tag
+        run: |
+          git tag -a "v${{ steps.next_version.outputs.next_version }}" -m "Release v${{ steps.next_version.outputs.next_version }}"
+          git push origin main --tags

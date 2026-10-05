@@ -28,7 +28,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' data: blob: https://cdn.akamai.steamstatic.com https://images.unsplash.com; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://cdn.akamai.steamstatic.com https://images.unsplash.com; connect-src 'self' ws://localhost:1421;"
     }
   },
   "bundle": {
@@ -40,6 +40,18 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
+      }
+    },
+    "macOS": {
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": "",
+      "signingIdentity": null
+    }
   }
 }

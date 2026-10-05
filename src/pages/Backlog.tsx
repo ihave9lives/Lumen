@@ -27,7 +27,7 @@ export default function Backlog() {
   const fetchGames = useCallback(async () => {
     try {
       if (window.__TAURI_INTERNALS__ || ('__TAURI_IPC__' in window)) {
-        const fetched = await invoke<Game[]>('scan_local_games');
+        const fetched = await invoke<Game[]>('scan_all_games');
         setGames(fetched || []);
       }
     } catch (err) { /* silent */ }

@@ -9,6 +9,8 @@ import {
   ListChecks,
   ChevronLeft,
   Sparkles,
+  RotateCcw,
+  Zap,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -23,6 +25,8 @@ const navItems: NavItem[] = [
   { id: "backlog", icon: ListChecks, label: "Backlog" },
   { id: "recent", icon: Clock, label: "Recently Played" },
   { id: "stats", icon: BarChart3, label: "Statistics" },
+  { id: "updates", icon: RotateCcw, label: "Updates" },
+  { id: "optiscaler", icon: Zap, label: "OptiScaler" },
 ];
 
 const bottomItems: NavItem[] = [

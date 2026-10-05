@@ -1,21 +1,23 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Trophy, Play, Monitor, Gamepad2 } from "lucide-react";
+import { Clock, Trophy, Play, Monitor, Gamepad2, EyeOff } from "lucide-react";
 import type { Game } from "../data/mockGames";
 
 interface GameCardProps {
   game: Game;
   index: number;
   onClick?: (game: Game) => void;
+  onHide?: (game: Game) => void;
 }
 
 const platformBadge: Record<string, { label: string; color: string; glow: string }> = {
   steam: { label: "Steam", color: "oklch(0.7 0.15 215)", glow: "oklch(0.7 0.15 215 / 0.3)" },
   epic: { label: "Epic", color: "oklch(0.75 0.12 85)", glow: "oklch(0.75 0.12 85 / 0.3)" },
   local: { label: "Local", color: "oklch(0.7 0.1 155)", glow: "oklch(0.7 0.1 155 / 0.3)" },
+  custom: { label: "Custom", color: "oklch(0.7 0.1 155)", glow: "oklch(0.7 0.1 155 / 0.3)" },
 };
 
-export default function GameCard({ game, index, onClick }: GameCardProps) {
+export default function GameCard({ game, index, onClick, onHide }: GameCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -245,24 +247,44 @@ export default function GameCard({ game, index, onClick }: GameCardProps) {
               </motion.div>
             )}
 
-            {/* Play Button */}
+            {/* Action buttons */}
             <motion.div
               initial={{ y: 15, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.16 }}
-              className="mt-3"
+              className="mt-3 flex gap-2"
             >
-              <button
-                className="w-full h-8 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all duration-200"
+              <motion.button
+                className="flex-1 h-8 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all duration-200"
                 style={{
                   background: "linear-gradient(135deg, oklch(0.65 0.25 275), oklch(0.7 0.2 310))",
                   color: "white",
                   boxShadow: "0 4px 16px oklch(0.65 0.25 275 / 0.4)",
                 }}
+                whileHover={{ scale: 1.02, boxShadow: "0 6px 24px oklch(0.65 0.25 275 / 0.5)" }}
+                whileTap={{ scale: 0.98 }}
+                onClick={(e: React.MouseEvent) => { e.stopPropagation(); onClick?.(game); }}
               >
                 <Play size={11} fill="currentColor" />
                 Play Now
-              </button>
+              </motion.button>
+
+              {onHide && (
+                <motion.button
+                  className="h-8 w-8 rounded-lg flex items-center justify-center cursor-pointer"
+                  style={{
+                    background: "oklch(100% 0 0 / 0.1)",
+                    border: "1px solid oklch(100% 0 0 / 0.15)",
+                    color: "var(--color-text-secondary)",
+                    outline: "none",
+                  }}
+                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); onHide?.(game); }}
+                  whileHover={{ backgroundColor: "oklch(100% 0 0 / 0.2)", scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <EyeOff size={14} />
+                </motion.button>
+              )}
             </motion.div>
           </motion.div>
         )}

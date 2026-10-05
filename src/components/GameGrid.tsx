@@ -9,9 +9,15 @@ import type { Game } from "../data/mockGames";
 interface GameGridProps {
   games?: Game[];
   onGameClick: (game: Game) => void;
+  onHideGame?: (game: Game) => void;
+  hiddenGames?: Set<string>;
 }
 
-export default function GameGrid({ onGameClick }: GameGridProps) {
+export default function GameGrid({ 
+  onGameClick, 
+  onHideGame,
+  hiddenGames = new Set()
+}: GameGridProps) {
   const [localGames, setLocalGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -19,7 +25,7 @@ export default function GameGrid({ onGameClick }: GameGridProps) {
   const fetchLocalGames = useCallback(async () => {
     try {
       if (window.__TAURI_INTERNALS__ || ('__TAURI_IPC__' in window)) {
-         const fetchedGames = await invoke<Game[]>('scan_local_games');
+         const fetchedGames = await invoke<Game[]>('scan_all_games');
          setLocalGames(fetchedGames || []);
       }
     } catch (err) {
@@ -81,9 +87,13 @@ export default function GameGrid({ onGameClick }: GameGridProps) {
     );
   }
 
-  const steamCount = localGames.filter(g => g.platform === "steam").length;
-  const epicCount = localGames.filter(g => g.platform === "epic").length;
-  const localCount = localGames.filter(g => g.platform === "local").length;
+  // Filter out hidden games
+  const visibleGames = localGames.filter(g => !hiddenGames.has(g.id));
+
+  const steamCount = visibleGames.filter(g => g.platform === "steam").length;
+  const epicCount = visibleGames.filter(g => g.platform === "epic").length;
+  const localCount = visibleGames.filter(g => g.platform === "local").length;
+  const customCount = visibleGames.filter(g => g.platform === "custom").length;
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 pb-6 pt-2">
@@ -98,7 +108,7 @@ export default function GameGrid({ onGameClick }: GameGridProps) {
           </h1>
           <div className="flex items-center gap-3 mt-1">
             <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
-              {localGames.length} games
+              {visibleGames.length} games
             </span>
             {steamCount > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "oklch(0.7 0.15 215 / 0.15)", color: "oklch(0.7 0.15 215)" }}>
@@ -113,6 +123,11 @@ export default function GameGrid({ onGameClick }: GameGridProps) {
             {localCount > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "oklch(0.7 0.1 155 / 0.15)", color: "oklch(0.7 0.1 155)" }}>
                 {localCount} Local
+              </span>
+            )}
+            {customCount > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "oklch(0.7 0.1 155 / 0.15)", color: "oklch(0.7 0.1 155)" }}>
+                {customCount} Custom
               </span>
             )}
           </div>
@@ -159,7 +174,7 @@ export default function GameGrid({ onGameClick }: GameGridProps) {
       </div>
 
       {/* Empty state */}
-      {localGames.length === 0 ? (
+      {visibleGames.length === 0 ? (
         <motion.div
           className="flex flex-col items-center justify-center py-20 gap-4"
           initial={{ opacity: 0, y: 20 }}
@@ -190,8 +205,14 @@ export default function GameGrid({ onGameClick }: GameGridProps) {
             },
           }}
         >
-          {localGames.map((game, index) => (
-            <GameCard key={game.id} game={game} index={index} onClick={onGameClick} />
+          {visibleGames.map((game, index) => (
+            <GameCard 
+              key={game.id} 
+              game={game} 
+              index={index} 
+              onClick={onGameClick}
+              onHide={onHideGame}
+            />
           ))}
         </motion.div>
       )}

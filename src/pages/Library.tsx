@@ -1,7 +1,15 @@
 import GameGrid from "../components/GameGrid";
 import type { Game } from "../data/mockGames";
 
-export default function Library({ onGameClick }: { onGameClick: (game: Game) => void }) {
+export default function Library({ 
+  onGameClick, 
+  onHideGame,
+  hiddenGames = new Set()
+}: { 
+  onGameClick: (game: Game) => void;
+  onHideGame?: (game: Game) => void;
+  hiddenGames?: Set<string>;
+}) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Top bar with greeting */}
@@ -20,7 +28,11 @@ export default function Library({ onGameClick }: { onGameClick: (game: Game) => 
         </div>
       </div>
 
-      <GameGrid onGameClick={onGameClick} />
+      <GameGrid 
+        onGameClick={onGameClick} 
+        onHideGame={onHideGame}
+        hiddenGames={hiddenGames}
+      />
     </div>
   );
 }
