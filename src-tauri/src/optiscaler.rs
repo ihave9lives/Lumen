@@ -420,7 +420,7 @@ fn write_optiscaler_ini(ini_path: &Path, config: &OptiScalerConfig) -> Result<()
 ");
     content.push_str("; Main folder for OptiScaler to check dll files below
 ");
-    content.push_str("; Default is .\OptiScaler
+    content.push_str(r"; Default is .\OptiScaler
 ");
     content.push_str(&format!("OptiDllPath={}
 ", config.opti_dll_path.as_deref().unwrap_or("auto")));
