@@ -96,24 +96,7 @@ jobs:
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           tagName: v__VERSION__
-          releaseName: 'Lumen v__VERSION__'
-          releaseBody: |
-            ## Lumen v__VERSION__
-            
-            ### Changes
-            See commit history for details.
-            
-            ### Downloads
-            - **Windows**: Lumen-win64.msi / Lumen-win64.nsis.exe
-            - **Linux**: Lumen-linux.deb / Lumen-linux.AppImage
-            - **macOS (Intel)**: Lumen-macos.dmg
-            - **macOS (Apple Silicon)**: Lumen-macos-arm64.dmg
-            
-            ### Installation
-            Run the installer for your platform. The app will auto-update on future releases.
           args: --target ${{ matrix.rust_target }} --bundles ${{ matrix.bundles }}
-          releaseDraft: true
-          prerelease: false
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
