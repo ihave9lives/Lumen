@@ -35,19 +35,19 @@ jobs:
           - os: windows-latest
             rust_target: x86_64-pc-windows-msvc
             artifact_name: Lumen-win64
-            installer: msi
+            bundles: msi,nsis,exe
           - os: ubuntu-latest
             rust_target: x86_64-unknown-linux-gnu
             artifact_name: Lumen-linux
-            installer: deb
+            bundles: deb,appimage
           - os: macos-latest
             rust_target: x86_64-apple-darwin
             artifact_name: Lumen-macos
-            installer: dmg
+            bundles: dmg
           - os: macos-latest
             rust_target: aarch64-apple-darwin
             artifact_name: Lumen-macos-arm64
-            installer: dmg
+            bundles: dmg
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -104,14 +104,14 @@ jobs:
             See commit history for details.
             
             ### Downloads
-            - **Windows**: Lumen-win64.msi / Lumen-win64.exe
+            - **Windows**: Lumen-win64.msi / Lumen-win64.nsis.exe / Lumen-win64.exe
             - **Linux**: Lumen-linux.deb / Lumen-linux.AppImage
             - **macOS (Intel)**: Lumen-macos.dmg
             - **macOS (Apple Silicon)**: Lumen-macos-arm64.dmg
             
             ### Installation
             Run the installer for your platform. The app will auto-update on future releases.
-          args: --target ${{ matrix.rust_target }} --bundle-type ${{ matrix.installer }}
+          args: --target ${{ matrix.rust_target }} --bundles ${{ matrix.bundles }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
