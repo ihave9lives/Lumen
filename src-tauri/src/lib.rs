@@ -3,6 +3,7 @@
 //! A Tauri + React desktop application for managing and launching games
 //! from Steam, Epic Games, and local installations.
 
+pub mod background_tracker;
 pub mod config;
 pub mod error;
 pub mod icons;
@@ -23,8 +24,9 @@ use crate::optiscaler::{
 };
 use crate::performance::{toggle_performance_monitor, is_performance_monitor_running};
 use crate::scanner::scan_all_games;
-use crate::settings::{get_settings, update_settings, reset_settings};
+use crate::settings::{get_settings, update_settings, reset_settings, get_optiscaler_game_config, save_optiscaler_game_config, OptiScalerGameConfig};
 use crate::updater::{check_for_updates, download_and_install_update, get_current_version, restart_app};
+use crate::background_tracker::{start_background_tracker_cmd, stop_background_tracker_cmd, is_background_tracker_running, get_playtime_stats, get_all_playtime_stats, init_background_tracker};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -56,12 +58,21 @@ pub fn run() {
                     download_and_install_update,
                     get_current_version,
                     restart_app,
+                    get_optiscaler_game_config,
+                    save_optiscaler_game_config,
+                    start_background_tracker_cmd,
+                    stop_background_tracker_cmd,
+                    is_background_tracker_running,
+                    get_playtime_stats,
+                    get_all_playtime_stats,
                 ])
-        .setup(|app| {
-            // Initialize settings directory on startup
-            let _ = AppSettings::load();
-            Ok(())
-        })
+                .setup(|app| {
+                    // Initialize settings directory on startup
+                    let _ = AppSettings::load();
+                    // Initialize background tracker
+                    init_background_tracker(app.handle());
+                    Ok(())
+                })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

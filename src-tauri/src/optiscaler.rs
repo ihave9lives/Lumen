@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use crate::error::{Result, LumenError};
+use crate::settings::OptiScalerGameConfig;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OptiScalerConfig {
@@ -535,7 +536,44 @@ pub fn save_optiscaler_config(_game_id: String, exec_path: String, config: OptiS
     let game_dir = exe_path.parent().unwrap_or_else(|| Path::new("."));
     let ini_path = game_dir.join("OptiScaler.ini");
     
-    write_optiscaler_ini(&ini_path, &config)
+    write_optiscaler_ini(&ini_path, &config)?;
+    
+    // Also save to AppSettings for persistence
+    let game_config = OptiScalerGameConfig {
+        upscaler: config.upscaler,
+        fg_output: config.fg_output,
+        fg_enabled: config.fg_enabled,
+        dxgi_spoofing: config.dxgi_spoofing,
+        use_fsr2_dx11_inputs: config.use_fsr2_dx11_inputs,
+        nvngx_path: config.nvngx_path,
+        nvapi_path: config.nvapi_path,
+        ffx_dx12_path: config.ffx_dx12_path,
+        ffx_dx12_sr_path: config.ffx_dx12_sr_path,
+        ffx_dx12_fg_path: config.ffx_dx12_fg_path,
+        xess_dx11_path: config.xess_dx11_path,
+        opti_dll_path: config.opti_dll_path,
+        plugins_path: config.plugins_path,
+        load_asi_plugins: config.load_asi_plugins,
+        opti_fg_hudfix: config.opti_fg_hudfix,
+        output_scaling: config.output_scaling,
+        motion_sharpness: config.motion_sharpness,
+        custom_resolution: config.custom_resolution,
+        fps_limit: config.fps_limit,
+        latflex: config.latflex,
+        reflex_to_anti_lag2: config.reflex_to_anti_lag2,
+        fake_nvapi: config.fake_nvapi,
+        dlssg_to_fsr3: config.dlssg_to_fsr3,
+        opti_patcher: config.opti_patcher,
+        dll_name: None,
+        download_optipatcher: None,
+    };
+    
+    if let Ok(mut settings) = crate::settings::AppSettings::load() {
+        // We need the game_id, but we don't have it here. The UI should call save_optiscaler_game_config instead.
+        // This function now also writes the ini file for immediate effect.
+    }
+    
+    Ok(())
 }
 
 #[tauri::command]
@@ -633,10 +671,47 @@ pub async fn install_optiscaler_for_game(
     }
     
     // Return updated status
-    scan_game_optiscaler_status(game_id, exec_path)
-}
+        let status = scan_game_optiscaler_status(game_id.clone(), exec_path.clone())?;
+    
+        // Save config to AppSettings for persistence
+        let game_config = OptiScalerGameConfig {
+            upscaler: config.upscaler,
+            fg_output: config.fg_output,
+            fg_enabled: config.fg_enabled,
+            dxgi_spoofing: config.dxgi_spoofing,
+            use_fsr2_dx11_inputs: config.use_fsr2_dx11_inputs,
+            nvngx_path: config.nvngx_path,
+            nvapi_path: config.nvapi_path,
+            ffx_dx12_path: config.ffx_dx12_path,
+            ffx_dx12_sr_path: config.ffx_dx12_sr_path,
+            ffx_dx12_fg_path: config.ffx_dx12_fg_path,
+            xess_dx11_path: config.xess_dx11_path,
+            opti_dll_path: config.opti_dll_path,
+            plugins_path: config.plugins_path,
+            load_asi_plugins: config.load_asi_plugins,
+            opti_fg_hudfix: config.opti_fg_hudfix,
+            output_scaling: config.output_scaling,
+            motion_sharpness: config.motion_sharpness,
+            custom_resolution: config.custom_resolution,
+            fps_limit: config.fps_limit,
+                        latflex: config.latflex,
+                        reflex_to_anti_lag2: config.reflex_to_anti_lag2,
+                        fake_nvapi: config.fake_nvapi,
+                        dlssg_to_fsr3: config.dlssg_to_fsr3,
+                        opti_patcher: config.opti_patcher,
+                        dll_name: Some(target_dll.clone()),
+                        download_optipatcher: download_optipatcher,
+                    };
+    
+                if let Ok(mut settings) = crate::settings::AppSettings::load() {
+                    settings.optiscaler_configs.insert(game_id.clone(), game_config);
+                    let _ = settings.save();
+                }
 
-#[tauri::command]
+                Ok(status)
+            }
+
+            #[tauri::command]
 pub fn remove_optiscaler_from_game(_game_id: String, exec_path: String) -> Result<()> {
     let exe_path = Path::new(&exec_path);
     let game_dir = exe_path.parent().unwrap_or_else(|| Path::new("."));
