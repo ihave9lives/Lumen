@@ -129,66 +129,74 @@ pub async fn get_optiscaler_latest_release() -> Result<OptiScalerRelease> {
 #[tauri::command]
 pub async fn download_optiscaler(_version: Option<String>, download_dir: Option<String>) -> Result<PathBuf> {
     let release = get_optiscaler_latest_release().await?;
-    
+
     let target_dir = download_dir
         .map(PathBuf::from)
         .unwrap_or_else(|| get_optiscaler_dir());
-    
+
     fs::create_dir_all(&target_dir)?;
-    
-    // Find the main OptiScaler zip asset
-    let zip_asset = release.assets.iter()
-        .find(|a| a.name.ends_with(".zip") && !a.name.contains("pdb") && !a.name.contains("debug"))
-        .ok_or_else(|| LumenError::Config("No OptiScaler zip asset found".to_string()))?;
-    
-    let zip_path = target_dir.join(&zip_asset.name);
-    
-    // Download the zip
+
+    // Find the main OptiScaler archive asset (.7z or .zip)
+    let archive_asset = release.assets.iter()
+        .find(|a| (a.name.ends_with(".7z") || a.name.ends_with(".zip")) && !a.name.contains("pdb") && !a.name.contains("debug"))
+        .ok_or_else(|| LumenError::Config("No OptiScaler archive asset found".to_string()))?;
+
+    let archive_path = target_dir.join(&archive_asset.name);
+
+    // Download the archive
     let client = reqwest::Client::new();
     let response = client
-        .get(&zip_asset.browser_download_url)
+        .get(&archive_asset.browser_download_url)
         .header("User-Agent", "Lumen-Launcher")
         .send()
         .await
         .map_err(|e| LumenError::Config(format!("Failed to download OptiScaler: {}", e)))?;
-    
+
     let bytes = response
         .bytes()
         .await
         .map_err(|e| LumenError::Config(format!("Failed to read download: {}", e)))?;
-    
-    fs::write(&zip_path, &bytes)?;
-    
-    // Extract zip
+
+    fs::write(&archive_path, &bytes)?;
+
+    // Extract archive
     let extract_dir = target_dir.join("extracted");
     if extract_dir.exists() {
         fs::remove_dir_all(&extract_dir)?;
     }
     fs::create_dir_all(&extract_dir)?;
-    
-    // Use PowerShell to extract on Windows
-    #[cfg(target_os = "windows")]
-    {
-        let ps_script = format!(
-            "Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
-            zip_path.display(),
-            extract_dir.display()
-        );
-        Command::new("powershell")
-            .args(["-NoProfile", "-Command", &ps_script])
+
+    // Extract based on file extension
+    if archive_asset.name.ends_with(".7z") {
+        // Use 7z for .7z files
+        Command::new("7z")
+            .args(["x", archive_path.to_str().unwrap(), format!("-o{}", extract_dir.display()).as_str(), "-y"])
             .output()
-            .map_err(|e| LumenError::Config(format!("Failed to extract zip: {}", e)))?;
+            .map_err(|e| LumenError::Config(format!("Failed to extract 7z: {}", e)))?;
+    } else {
+        // Use PowerShell for .zip on Windows
+        #[cfg(target_os = "windows")]
+        {
+            let ps_script = format!(
+                "Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
+                archive_path.display(),
+                extract_dir.display()
+            );
+            Command::new("powershell")
+                .args(["-NoProfile", "-Command", &ps_script])
+                .output()
+                .map_err(|e| LumenError::Config(format!("Failed to extract zip: {}", e)))?;
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            Command::new("unzip")
+                .args(["-o", archive_path.to_str().unwrap(), "-d", extract_dir.to_str().unwrap()])
+                .output()
+                .map_err(|e| LumenError::Config(format!("Failed to extract zip: {}", e)))?;
+        }
     }
-    
-    #[cfg(not(target_os = "windows"))]
-    {
-        // Use zip command on Linux/macOS
-        Command::new("unzip")
-            .args(["-o", zip_path.to_str().unwrap(), "-d", extract_dir.to_str().unwrap()])
-            .output()
-            .map_err(|e| LumenError::Config(format!("Failed to extract zip: {}", e)))?;
-    }
-    
+
     Ok(extract_dir)
 }
 
